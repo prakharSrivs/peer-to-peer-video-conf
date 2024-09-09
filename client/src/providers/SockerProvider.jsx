@@ -5,7 +5,7 @@ export const SocketContext = createContext(null);
 
 export const SocketProvider = ({ children }) => {
 
-    const socket = useMemo(() => io("localhost:5000"), []);
+    const socket = useMemo(() => io(process.env.REACT_APP_SOCKET_BACKEND_URL), []);
 
   return (
     <SocketContext.Provider value={socket}>
