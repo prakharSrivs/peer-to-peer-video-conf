@@ -76,4 +76,8 @@ app.post('/room/isValid',(req,res)=>{
     return res.send({ isValid: roomToSocketIdMap.has(roomId) });
 })
 
+app.get('/status',(req,res)=>{
+    return res.sendStatus(200);
+})
+
 app.listen(HTTP_SERVER_PORT, ()=> console.log("HTTP Server Listening on Port",HTTP_SERVER_PORT));
