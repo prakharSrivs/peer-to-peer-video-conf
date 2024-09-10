@@ -30,7 +30,7 @@ const LobbyScreen = () => {
   const handleCreateRoom = async ()=>{
     try{
       const response = await axios.get(process?.env?.REACT_APP_BACKEND_URL+"/room/create");
-      navigate('/join/'+response.data);
+      navigate('/join/'+response.data); 
       localStorage.setItem("email",email);
     }catch(e){
       console.log(e);

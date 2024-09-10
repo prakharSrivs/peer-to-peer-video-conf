@@ -17,49 +17,42 @@ app.use(json());
 
 const roomToSocketIdMap = new Map();
 const socketIdToRoomMap = new Map();
-const emailToSocketIdMap = new Map();
-const socketIdToEmailMap = new Map();
+const userDetails = new Map();
+
+const returnRoomDetails = (roomId)=>{
+    const currRoomSockets = roomToSocketIdMap.get(roomId);
+    const hashset = new Set(currRoomSockets || []);
+    const uniqueSockets = Array.from(hashset);
+    const result = [];
+    for( let socketId of uniqueSockets ){
+        const currSocketDetails = userDetails.get(socketId);
+        result.push({ socketId, ...currSocketDetails });
+    }
+    return result;
+}
 
 io.on('connection',(socket)=>{
-    console.log("User Connected", socket.id)
 
-    socket.on("room:join",(data)=>{
-        const { email, roomId } = data;
+    socket.on("user:joined",(data)=>{
+        const { roomId, email, username, peerId } = data;
         socket.join(roomId);
-        if(roomToSocketIdMap.has(roomId)) roomToSocketIdMap.get(roomId).push(socket.id);
+        userDetails.set(socket.id,{ username, email, peerId });
+        if( !roomToSocketIdMap.has(roomId) ) roomToSocketIdMap.set(roomId, []);
+        roomToSocketIdMap.get(roomId).push(socket.id);
         socketIdToRoomMap.set(socket.id, roomId);
-        socketIdToEmailMap.set(socket.id, email);
-        emailToSocketIdMap.set(email, socket.id);
-        io.to(roomId).emit("new-user-update",roomToSocketIdMap.get(roomId)); 
-    })
-
-    socket.on("user:call",({ to, offer })=>{
-        io.to(to).emit("incoming:call", { from: socket.id, offer });
-    })
-
-    socket.on("call:accepted",({to, answer})=>{
-        io.to(to).emit("call:accepted",{ from:socket.id, answer });
-    })
-
-    socket.on("nego:needed",({to, offer})=>{
-        io.to(to).emit("nego:request",{ from: socket.id, offer });
-    })
-
-    socket.on("nego:complete",({to, answer})=>{
-        io.to(to).emit("nego:complete:answer",{ from: socket.id, answer });
+        io.to(roomId).emit("user:update", returnRoomDetails(roomId));
     })
 
     socket.on("disconnect",()=>{
-        console.log("User disconnected ",socket.id)
-        const email = socketIdToEmailMap.get(socket.id);
-        const roomId = socketIdToRoomMap.get(socket.id);
-        socketIdToEmailMap.delete(socket.id);
+        const currUserRoomId = socketIdToRoomMap.get(socket.id);
+        userDetails.delete(socket.id);
         socketIdToRoomMap.delete(socket.id);
-        emailToSocketIdMap.delete(email);
-        const participantsArray = roomToSocketIdMap.get(roomId) || [];
-        const newParticipantsArray = participantsArray.filter( participant => participant !== socket.id ) || [];
-        roomToSocketIdMap.set(roomId, newParticipantsArray);    
-        io.to(roomId).emit("new-user-update",roomToSocketIdMap.get(roomId));
+        roomToSocketIdMap.set(
+            currUserRoomId, roomToSocketIdMap.get(currUserRoomId)?.filter( socketId => socketId!=socket.id )
+        );
+        if( roomToSocketIdMap.get(currUserRoomId)?.length===0 ) roomToSocketIdMap.delete(currUserRoomId);
+        socket.leave(currUserRoomId);
+        io.to(currUserRoomId).emit("user:update", returnRoomDetails(currUserRoomId));
     })
 
 })

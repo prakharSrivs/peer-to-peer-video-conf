@@ -8,9 +8,9 @@ import "./index.css"
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
-      <SocketProvider>
+      {/* <SocketProvider> */}
         <App />
-        </SocketProvider>
+        {/* </SocketProvider> */}
     </BrowserRouter>
   </StrictMode>,
 )
